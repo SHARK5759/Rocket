@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class Rocket : MonoBehaviour
 {
@@ -26,7 +27,23 @@ public class Rocket : MonoBehaviour
         Thrust();//上升
         Rotate();//旋转
     }
-
+    void OnCollisionEnter(Collision collision)//每当发生碰撞
+    {
+        switch (collision.gameObject.tag)//如果和unity中某一物体的标签发生碰撞
+        {
+            case "Friendly"://如果标签是Friendly
+                print("OK");
+                break;
+            case "Finish":
+                print("Finish");
+                SceneManager.LoadScene(1);
+                break;
+            default:
+                print("dead");
+                SceneManager.LoadScene(0);
+                break;
+        }
+    }
     private void Rotate()
     {
         rigidbody.freezeRotation = true;        
@@ -47,7 +64,7 @@ public class Rocket : MonoBehaviour
         if (Input.GetKey(KeyCode.Space))   //如果按空格      
         {           
             rigidbody.AddRelativeForce(Vector3.up * mainThrust);//火箭上升
-            if (!audiosource.isPlaying)//保证按空格时声音不会重叠
+            if (!audiosource.isPlaying)// 保证按空格时声音不会重叠
             {
                 audiosource.Play();
             }
