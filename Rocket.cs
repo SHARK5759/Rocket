@@ -5,10 +5,16 @@ using UnityEngine.SceneManagement;
 
 public class Rocket : MonoBehaviour
 {
-    [SerializeField]float rcsThrust = 100f;//在unity中显示该选项，方便调节
+    [SerializeField] float rcsThrust = 100f;//在unity中显示该选项，方便调节
     [SerializeField] float mainThrust = 50f;
+    [SerializeField] AudioClip mainEngine;
+    [SerializeField] AudioClip deathExposion;
+    [SerializeField] AudioClip Jingle;
     Rigidbody rigidbody;
     AudioSource audiosource;
+
+    enum State { Alive,Dying,Transcending}
+    State state = State.Alive;
     // Start is called before the first frame update
     void Start()
     {
@@ -24,27 +30,54 @@ public class Rocket : MonoBehaviour
 
     private void ProcessInput()
     {
-        Thrust();//上升
-        Rotate();//旋转
+        if (state == State.Alive)
+        { 
+            RespondToThrustInput();//上升
+            RespondToRotateInput();//旋转
+        }
+      
     }
     void OnCollisionEnter(Collision collision)//每当发生碰撞
     {
+        if (state != State.Alive)//ignore collision when dead
+        {
+            return;
+        }
         switch (collision.gameObject.tag)//如果和unity中某一物体的标签发生碰撞
         {
-            case "Friendly"://如果标签是Friendly
-                print("OK");
-                break;
+            case "Friendly"://如果标签是Friendly       
+               break;
             case "Finish":
-                print("Finish");
-                SceneManager.LoadScene(1);
+                SuccessSequence();
                 break;
             default:
-                print("dead");
-                SceneManager.LoadScene(0);
+                DeathSequence();
                 break;
-        }
+        }            
     }
-    private void Rotate()
+    private void SuccessSequence()
+    {
+        state = State.Transcending;
+        audiosource.Stop();
+        audiosource.PlayOneShot(Jingle);
+        Invoke("LoadNextScene", 1f);
+    }
+    private void DeathSequence()
+    {
+        state = State.Dying;
+        audiosource.Stop();
+        audiosource.PlayOneShot(deathExposion);
+        Invoke("LoadFirstScene", 1f);
+    }
+    void LoadNextScene()
+    {
+        SceneManager.LoadScene(1);//todo allow for more than 2 levels
+    }
+    void LoadFirstScene()
+    {
+        SceneManager.LoadScene(0);
+    }
+    private void RespondToRotateInput()
     {
         rigidbody.freezeRotation = true;        
         float rotateThisFrame = rcsThrust * Time.deltaTime;//调整转速
@@ -59,19 +92,24 @@ public class Rocket : MonoBehaviour
         rigidbody.freezeRotation = false;
     }
 
-    private void Thrust()
+    private void RespondToThrustInput()
     {         
         if (Input.GetKey(KeyCode.Space))   //如果按空格      
-        {           
-            rigidbody.AddRelativeForce(Vector3.up * mainThrust);//火箭上升
-            if (!audiosource.isPlaying)// 保证按空格时声音不会重叠
-            {
-                audiosource.Play();
-            }
+        {
+            ApplyThrust();
         }
         else  //不按空格的时候，声音停止
         {
             audiosource.Stop();
         }       
+    }
+
+    private void ApplyThrust()
+    {
+        rigidbody.AddRelativeForce(Vector3.up * mainThrust);//火箭上升
+        if (!audiosource.isPlaying)// 保证按空格时声音不会重叠
+        {
+            audiosource.PlayOneShot(mainEngine);
+        }
     }
 }
