@@ -128,14 +128,22 @@ public class Rocket : MonoBehaviour
         audiosource.Stop();
         audiosource.PlayOneShot(deathExposion);
         deathExposionParticle.Play();
-        Invoke("LoadFirstScene", levelLoadDelay);
+        Invoke("LoadCurrentScene", levelLoadDelay);
     }
-    void LoadNextScene()
+    void LoadNextScene()//加载下一个关卡
     {
-        SceneManager.LoadScene(1);//todo allow for more than 2 levels
+        //todo allow for more than 2 levels
+        int currentSceneIndex = SceneManager.GetActiveScene().buildIndex;
+        int nextSceneIndex = currentSceneIndex + 1;
+        if (nextSceneIndex == SceneManager.sceneCountInBuildSettings)//我们处在七个场景中的任何一个场景时
+        {
+            nextSceneIndex = 0; //回到第一个场景，循环
+        }
+        SceneManager.LoadScene(nextSceneIndex);
     }
-    void LoadFirstScene()
+    void LoadCurrentScene()
     {
+        //todo
         SceneManager.LoadScene(0);
     }
   
