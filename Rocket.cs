@@ -7,14 +7,25 @@ public class Rocket : MonoBehaviour
 {
     [SerializeField] float rcsThrust = 100f;//在unity中显示该选项，方便调节
     [SerializeField] float mainThrust = 50f;
+    [SerializeField] float levelLoadDelay = 2f;
+
     [SerializeField] AudioClip mainEngine;
     [SerializeField] AudioClip deathExposion;
-    [SerializeField] AudioClip Jingle;
+    [SerializeField] AudioClip Success;
+
+    [SerializeField] ParticleSystem mainEngineParticles;
+    [SerializeField] ParticleSystem deathExposionParticle;
+    [SerializeField] ParticleSystem SuccessParticle;
+
     Rigidbody rigidbody;
     AudioSource audiosource;
 
     enum State { Alive,Dying,Transcending}
     State state = State.Alive;
+
+    bool collisionDisabled = true;
+    //public object R { get; private set; }
+
     // Start is called before the first frame update
     void Start()
     {
@@ -25,21 +36,69 @@ public class Rocket : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        ProcessInput();
-    }
-
-    private void ProcessInput()
-    {
+        
         if (state == State.Alive)
-        { 
+        {
             RespondToThrustInput();//上升
             RespondToRotateInput();//旋转
         }
-      
+        if (Debug.isDebugBuild)
+        { 
+            RespondDebugKey();
+        }            
     }
+    private void RespondToThrustInput()
+    {
+        if (Input.GetKey(KeyCode.Space))   //如果按空格      
+        {
+            ApplyThrust();
+        }
+        else  //不按空格的时候，声音停止
+        {
+            audiosource.Stop();
+        }
+    }
+    private void ApplyThrust()
+    {
+        rigidbody.AddRelativeForce(Vector3.up * mainThrust);//火箭上升
+        if (!audiosource.isPlaying)// 保证按空格时声音不会重叠
+        {
+            audiosource.PlayOneShot(mainEngine);
+        }
+        mainEngineParticles.Play();
+    }
+    private void RespondToRotateInput()
+    {
+        rigidbody.freezeRotation = true;
+        float rotateThisFrame = rcsThrust * Time.deltaTime;//调整转速
+        if (Input.GetKey(KeyCode.A))
+        {
+            transform.Rotate(Vector3.forward * rotateThisFrame);
+        }
+        else if (Input.GetKey(KeyCode.D))
+        {
+            transform.Rotate(-Vector3.forward * rotateThisFrame);
+        }
+        rigidbody.freezeRotation = false;
+    }
+
+    private void RespondDebugKey()
+    {
+        if (Input.GetKeyDown(KeyCode.L))
+        {
+            LoadNextScene();
+        }
+        else if (Input.GetKeyDown(KeyCode.C))
+        {
+            //停止碰撞
+            collisionDisabled = !collisionDisabled;//切换碰撞
+        }
+    }
+
+
     void OnCollisionEnter(Collision collision)//每当发生碰撞
     {
-        if (state != State.Alive)//ignore collision when dead
+        if (state != State.Alive|| !collisionDisabled)//ignore collision when dead
         {
             return;
         }
@@ -59,15 +118,17 @@ public class Rocket : MonoBehaviour
     {
         state = State.Transcending;
         audiosource.Stop();
-        audiosource.PlayOneShot(Jingle);
-        Invoke("LoadNextScene", 1f);
+        audiosource.PlayOneShot(Success);
+        SuccessParticle.Play();
+        Invoke("LoadNextScene", levelLoadDelay);
     }
     private void DeathSequence()
     {
         state = State.Dying;
         audiosource.Stop();
         audiosource.PlayOneShot(deathExposion);
-        Invoke("LoadFirstScene", 1f);
+        deathExposionParticle.Play();
+        Invoke("LoadFirstScene", levelLoadDelay);
     }
     void LoadNextScene()
     {
@@ -77,39 +138,6 @@ public class Rocket : MonoBehaviour
     {
         SceneManager.LoadScene(0);
     }
-    private void RespondToRotateInput()
-    {
-        rigidbody.freezeRotation = true;        
-        float rotateThisFrame = rcsThrust * Time.deltaTime;//调整转速
-        if (Input.GetKey(KeyCode.A))
-        {           
-            transform.Rotate(Vector3.forward * rotateThisFrame);
-        }
-        else if (Input.GetKey(KeyCode.D))
-        {
-            transform.Rotate(-Vector3.forward *rotateThisFrame);
-        }
-        rigidbody.freezeRotation = false;
-    }
-
-    private void RespondToThrustInput()
-    {         
-        if (Input.GetKey(KeyCode.Space))   //如果按空格      
-        {
-            ApplyThrust();
-        }
-        else  //不按空格的时候，声音停止
-        {
-            audiosource.Stop();
-        }       
-    }
-
-    private void ApplyThrust()
-    {
-        rigidbody.AddRelativeForce(Vector3.up * mainThrust);//火箭上升
-        if (!audiosource.isPlaying)// 保证按空格时声音不会重叠
-        {
-            audiosource.PlayOneShot(mainEngine);
-        }
-    }
+  
+ 
 }
